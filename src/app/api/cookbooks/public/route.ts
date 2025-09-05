@@ -1,0 +1,112 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { z } from 'zod';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    const cookbooks = await prisma.cookbook.findMany({
+      where: {
+        isPrivate: false, // Only public cookbooks
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
+        recipes: {
+          include: {
+            recipe: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  }
+                },
+                source: true,
+                classification: true,
+              }
+            }
+          },
+          orderBy: {
+            order: 'asc'
+          }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      skip: offset,
+      take: limit,
+    });
+
+    // Transform the data to match the frontend types
+    const transformedCookbooks = cookbooks.map(cookbook => ({
+      id: cookbook.id,
+      user_id: cookbook.userId,
+      name: cookbook.name,
+      description: cookbook.description,
+      cover_image: cookbook.coverImage,
+      recipe_ids: cookbook.recipes.map(r => ({
+        recipe_id: r.recipeId,
+        order: r.order,
+      })),
+      is_private: cookbook.isPrivate,
+      created_at: cookbook.createdAt.toISOString(),
+      updated_at: cookbook.updatedAt.toISOString(),
+      user: cookbook.user,
+      recipes: cookbook.recipes.map(r => ({
+        id: r.recipe.id,
+        user_id: r.recipe.userId,
+        name: r.recipe.name,
+        ingredients: r.recipe.ingredients,
+        instructions: r.recipe.instructions,
+        notes: r.recipe.notes,
+        servings: r.recipe.servings,
+        source_id: r.recipe.sourceId,
+        classification_id: r.recipe.classificationId,
+        date_added: r.recipe.dateAdded.toISOString(),
+        calories: r.recipe.calories,
+        fat: r.recipe.fat,
+        cholesterol: r.recipe.cholesterol,
+        sodium: r.recipe.sodium,
+        protein: r.recipe.protein,
+        marked: r.recipe.marked,
+        tags: r.recipe.tags ? JSON.parse(r.recipe.tags) : [],
+        meal_ids: [], // Would need additional queries for full recipe data
+        preparation_ids: [],
+        course_ids: [],
+        is_private: r.recipe.isPrivate,
+        created_at: r.recipe.createdAt.toISOString(),
+        updated_at: r.recipe.updatedAt.toISOString(),
+        user: r.recipe.user,
+        source: r.recipe.source,
+        classification: r.recipe.classification,
+      })),
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: transformedCookbooks,
+      message: 'Public cookbooks retrieved successfully',
+      meta: {
+        api_version: 'v1'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching public cookbooks:', error);
+    return NextResponse.json({
+      success: false,
+      message: 'Internal server error'
+    }, { status: 500 });
+  }
+}

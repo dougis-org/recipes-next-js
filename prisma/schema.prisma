@@ -1,0 +1,209 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id                    String    @id @default(cuid())
+  name                  String
+  email                 String    @unique
+  emailVerifiedAt       DateTime?
+  subscriptionTier      Int       @default(0)
+  subscriptionStatus    String    @default("free")
+  subscriptionExpiresAt DateTime?
+  adminOverride         Boolean   @default(false)
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  recipes   Recipe[]
+  cookbooks Cookbook[]
+
+  @@map("users")
+}
+
+// Classification model
+model Classification {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  recipes Recipe[]
+
+  @@map("classifications")
+}
+
+// Source model
+model Source {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  recipes Recipe[]
+
+  @@map("sources")
+}
+
+// Meal model
+model Meal {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  recipes RecipeMeal[]
+
+  @@map("meals")
+}
+
+// Course model
+model Course {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  recipes RecipeCourse[]
+
+  @@map("courses")
+}
+
+// Preparation model
+model Preparation {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  recipes RecipePreparation[]
+
+  @@map("preparations")
+}
+
+// Recipe model
+model Recipe {
+  id               String    @id @default(cuid())
+  userId           String
+  name             String
+  ingredients      String    @db.Text
+  instructions     String    @db.Text
+  notes            String?   @db.Text
+  servings         Int
+  sourceId         String?
+  classificationId String?
+  dateAdded        DateTime  @default(now())
+  calories         Int?
+  fat              Float?
+  cholesterol      Float?
+  sodium           Float?
+  protein          Float?
+  marked           Boolean   @default(false)
+  tags             String    @db.Text // JSON string of tags array
+  isPrivate        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  user           User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source         Source?              @relation(fields: [sourceId], references: [id])
+  classification Classification?      @relation(fields: [classificationId], references: [id])
+  meals          RecipeMeal[]
+  courses        RecipeCourse[]
+  preparations   RecipePreparation[]
+  cookbooks      CookbookRecipe[]
+
+  @@map("recipes")
+}
+
+// Recipe-Meal many-to-many junction table
+model RecipeMeal {
+  id       String @id @default(cuid())
+  recipeId String
+  mealId   String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, mealId])
+  @@map("recipe_meals")
+}
+
+// Recipe-Course many-to-many junction table
+model RecipeCourse {
+  id       String @id @default(cuid())
+  recipeId String
+  courseId String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, courseId])
+  @@map("recipe_courses")
+}
+
+// Recipe-Preparation many-to-many junction table
+model RecipePreparation {
+  id            String @id @default(cuid())
+  recipeId      String
+  preparationId String
+
+  recipe      Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  preparation Preparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, preparationId])
+  @@map("recipe_preparations")
+}
+
+// Cookbook model
+model Cookbook {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  description String?   @db.Text
+  coverImage  String?
+  isPrivate   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user    User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipes CookbookRecipe[]
+
+  @@map("cookbooks")
+}
+
+// Cookbook-Recipe many-to-many junction table with ordering
+model CookbookRecipe {
+  id         String @id @default(cuid())
+  cookbookId String
+  recipeId   String
+  order      Int    @default(0)
+
+  cookbook Cookbook @relation(fields: [cookbookId], references: [id], onDelete: Cascade)
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([cookbookId, recipeId])
+  @@map("cookbook_recipes")
+}
