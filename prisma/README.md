@@ -51,7 +51,12 @@ npm run db:seed
 ```
 
 This is often run automatically after `db:reset`.
+## Viewing Data with Prisma Studio
 
+To browse and edit your local database with a GUI, run:
+
+```bash
+npm run db:studio
 ## Production Migrations
 
 For deploying migrations to production (or staging), use:
