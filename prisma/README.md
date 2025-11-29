@@ -40,7 +40,7 @@ If you need to completely wipe the database and re-apply all migrations (useful 
 npm run db:reset
 ```
 
-> **Warning:** This command will delete all data in your local database.
+> **Warning:** This command will delete all data in your local database. Since the `db:reset` script uses `--force`, it will **not** ask for confirmation.
 
 ## Seeding the Database
 
