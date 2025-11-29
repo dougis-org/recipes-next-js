@@ -19,6 +19,7 @@ npm run db:migrate
 # OR directly via npx
 npx prisma migrate dev
 ```
+> **Note:** The `db:migrate` command uses `prisma migrate dev`, which is intended for development. It may prompt to reset the database on certain schema changes, which would lead to data loss.
 
 ### Creating a New Migration
 
