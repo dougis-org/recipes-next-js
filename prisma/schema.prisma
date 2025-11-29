@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,202 +5,151 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-// User model
-model User {
-  id                    String    @id @default(cuid())
-  name                  String
-  email                 String    @unique
-  emailVerifiedAt       DateTime?
-  subscriptionTier      Int       @default(0)
-  subscriptionStatus    String    @default("free")
-  subscriptionExpiresAt DateTime?
-  adminOverride         Boolean   @default(false)
-  stripeCustomerId      String?
-  stripeSubscriptionId  String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  // Relations
-  recipes   Recipe[]
-  cookbooks Cookbook[]
-
-  @@map("users")
-}
-
-// Classification model
 model Classification {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  recipes Recipe[]
+  id         Int      @id @default(autoincrement())
+  name       String   @unique(map: "classification_name") @db.VarChar(30)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  recipes    Recipe[]
 
   @@map("classifications")
 }
 
-// Source model
 model Source {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  recipes Recipe[]
+  id         Int      @id @default(autoincrement())
+  name       String   @unique(map: "source_name") @db.VarChar(50)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  recipes    Recipe[]
 
   @@map("sources")
 }
 
-// Meal model
 model Meal {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  recipes RecipeMeal[]
+  id           Int          @id @default(autoincrement())
+  name         String       @unique(map: "meal_name") @db.VarChar(20)
+  created_at   DateTime     @default(now()) @db.Timestamp(0)
+  updated_at   DateTime     @default(now()) @db.Timestamp(0)
+  recipe_meals RecipeMeal[]
 
   @@map("meals")
 }
 
-// Course model
 model Course {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  recipes RecipeCourse[]
+  id             Int            @id @default(autoincrement())
+  name           String         @unique(map: "course_name") @db.VarChar(20)
+  created_at     DateTime       @default(now()) @db.Timestamp(0)
+  updated_at     DateTime       @default(now()) @db.Timestamp(0)
+  recipe_courses RecipeCourse[]
 
   @@map("courses")
 }
 
-// Preparation model
 model Preparation {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  recipes RecipePreparation[]
+  id                  Int                 @id @default(autoincrement())
+  description         String              @unique(map: "preparation_description") @db.VarChar(15)
+  created_at          DateTime            @default(now()) @db.Timestamp(0)
+  updated_at          DateTime            @default(now()) @db.Timestamp(0)
+  recipe_preparations RecipePreparation[]
 
   @@map("preparations")
 }
 
-// Recipe model
 model Recipe {
-  id               String    @id @default(cuid())
-  userId           String
-  name             String
-  ingredients      String    @db.Text
-  instructions     String    @db.Text
-  notes            String?   @db.Text
-  servings         Int
-  sourceId         String?
-  classificationId String?
-  dateAdded        DateTime  @default(now())
-  calories         Int?
-  fat              Float?
-  cholesterol      Float?
-  sodium           Float?
-  protein          Float?
-  marked           Boolean   @default(false)
-  tags             String    @db.Text // JSON string of tags array
-  isPrivate        Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                  Int                 @id @default(autoincrement())
+  name                String              @unique(map: "recipe_name") @db.VarChar(50)
+  ingredients         String?             @db.Text
+  instructions        String?             @db.Text
+  notes               String?             @db.Text
+  servings            Int?                @default(0)
+  source_id           Int?                @default(0)
+  classification_id   Int?                @default(0)
+  date_added          DateTime?           @db.DateTime(0)
+  calories            String?             @db.VarChar(50)
+  fat                 String?             @db.VarChar(50)
+  cholesterol         String?             @db.VarChar(50)
+  sodium              String?             @db.VarChar(50)
+  protein             String?             @db.VarChar(50)
+  marked              Boolean?
+  created_at          DateTime            @default(now()) @db.Timestamp(0)
+  updated_at          DateTime            @default(now()) @db.Timestamp(0)
+  cookbook_recipes    CookbookRecipe[]
+  recipe_courses      RecipeCourse[]
+  recipe_meals        RecipeMeal[]
+  recipe_preparations RecipePreparation[]
+  classifications     Classification?     @relation(fields: [classification_id], references: [id], onDelete: NoAction, map: "fk_recipes_classification_id")
+  sources             Source?             @relation(fields: [source_id], references: [id], onDelete: NoAction, map: "fk_recipes_source_id")
 
-  // Relations
-  user           User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  source         Source?              @relation(fields: [sourceId], references: [id])
-  classification Classification?      @relation(fields: [classificationId], references: [id])
-  meals          RecipeMeal[]
-  courses        RecipeCourse[]
-  preparations   RecipePreparation[]
-  cookbooks      CookbookRecipe[]
-
+  @@index([classification_id], map: "classification_id")
+  @@index([source_id], map: "source_id")
   @@map("recipes")
 }
 
-// Recipe-Meal many-to-many junction table
 model RecipeMeal {
-  id       String @id @default(cuid())
-  recipeId String
-  mealId   String
+  id         Int      @id @default(autoincrement())
+  recipe_id  Int      @default(0)
+  meal_id    Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  meals      Meal     @relation(fields: [meal_id], references: [id], onDelete: NoAction, map: "fk_recipe_meal_pivot_meal_id")
+  recipes    Recipe   @relation(fields: [recipe_id], references: [id], onDelete: NoAction, map: "fk_recipe_meal_pivot_recipe_id")
 
-  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
-
-  @@unique([recipeId, mealId])
+  @@index([meal_id], map: "meal_id")
+  @@index([recipe_id], map: "recipe_id")
   @@map("recipe_meals")
 }
 
-// Recipe-Course many-to-many junction table
 model RecipeCourse {
-  id       String @id @default(cuid())
-  recipeId String
-  courseId String
+  id         Int      @id @default(autoincrement())
+  recipe_id  Int      @default(0)
+  course_id  Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  updated_at DateTime @default(now()) @db.Timestamp(0)
+  courses    Course   @relation(fields: [course_id], references: [id], onDelete: NoAction, map: "fk_recipe_course_pivot_course_id")
+  recipes    Recipe   @relation(fields: [recipe_id], references: [id], onDelete: NoAction, map: "fk_recipe_course_pivot_recipe_id")
 
-  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([recipeId, courseId])
+  @@index([course_id], map: "course_id")
+  @@index([recipe_id], map: "recipe_id")
   @@map("recipe_courses")
 }
 
-// Recipe-Preparation many-to-many junction table
 model RecipePreparation {
-  id            String @id @default(cuid())
-  recipeId      String
-  preparationId String
+  id             Int         @id @default(autoincrement())
+  recipe_id      Int         @default(0)
+  preparation_id Int         @default(0)
+  created_at     DateTime    @default(now()) @db.Timestamp(0)
+  updated_at     DateTime    @default(now()) @db.Timestamp(0)
+  preparations   Preparation @relation(fields: [preparation_id], references: [id], onDelete: NoAction, map: "fk_recipe_preparation_pivot_meal_id")
+  recipes        Recipe      @relation(fields: [recipe_id], references: [id], onDelete: NoAction, map: "fk_recipe_preparation_pivot_recipe_id")
 
-  recipe      Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  preparation Preparation @relation(fields: [preparationId], references: [id], onDelete: Cascade)
-
-  @@unique([recipeId, preparationId])
+  @@index([preparation_id], map: "preparation_id")
+  @@index([recipe_id], map: "recipe_id")
   @@map("recipe_preparations")
 }
 
-// Cookbook model
 model Cookbook {
-  id          String    @id @default(cuid())
-  userId      String
-  name        String
-  description String?   @db.Text
-  coverImage  String?
-  isPrivate   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  user    User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recipes CookbookRecipe[]
+  id               Int              @id @default(autoincrement())
+  name             String?          @unique(map: "cookbook_name") @db.VarChar(255)
+  created_at       DateTime         @default(now()) @db.Timestamp(0)
+  updated_at       DateTime         @default(now()) @db.Timestamp(0)
+  cookbook_recipes CookbookRecipe[]
 
   @@map("cookbooks")
 }
 
-// Cookbook-Recipe many-to-many junction table with ordering
 model CookbookRecipe {
-  id         String @id @default(cuid())
-  cookbookId String
-  recipeId   String
-  order      Int    @default(0)
+  id          Int      @id @default(autoincrement())
+  cookbook_id Int      @default(0)
+  recipe_id   Int      @default(0)
+  created_at  DateTime @default(now()) @db.Timestamp(0)
+  updated_at  DateTime @default(now()) @db.Timestamp(0)
+  cookbooks   Cookbook @relation(fields: [cookbook_id], references: [id], onDelete: NoAction, map: "fk_cookbook_recipe_pivot_cookbook_id")
+  recipes     Recipe   @relation(fields: [recipe_id], references: [id], onDelete: NoAction, map: "fk_cookbook_recipe_pivot_recipe_id")
 
-  cookbook Cookbook @relation(fields: [cookbookId], references: [id], onDelete: Cascade)
-  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-
-  @@unique([cookbookId, recipeId])
+  @@index([cookbook_id], map: "fk_cookbook_id")
+  @@index([recipe_id], map: "fk_recipe_id")
   @@map("cookbook_recipes")
 }
